@@ -10,7 +10,9 @@ var todos = [{
   text: 'first test todo'
 }, {
   _id: new ObjectID(),
-  text: 'Second test todo'
+  text: 'Second test todo',
+  completed: true,
+  completedAt: 333
 }];
 
 beforeEach((done)=>{
@@ -100,5 +102,72 @@ describe('GET /todos/:id', ()=>{
       .get(`/todos/${123}`)
       .expect(404)
       .end(done);
+  });
+});
+
+describe('PATCH /todos/:id', ()=>{
+  it('should update the todo', (done)=>{
+    //grad id of first item
+    //update text, set completed true
+    //200
+    //text is changed, completed is true, compledtedAt is a number .toBeA
+    var text = 'Updated todo';
+    var completed = true;
+
+    request(app)
+      .patch(`/todos/${todos[0]._id.toHexString()}`)
+      .expect(200)
+      .send({text,completed})
+      .expect((res)=>{
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(completed);
+      })
+      .end((err,res)=>{
+        if(err){
+          return done(err);
+        }
+
+        Todo.findById(todos[0]._id).then((doc)=>{
+          expect(doc.text).toBe(text);
+          expect(doc.completed).toBe(completed);
+          expect(doc.completedAt).toBeA('number');
+          done();
+        }, (e)=>{
+          done(e);
+        });
+      });
+
+
+  });
+
+  it('should clear completedAt when todo is not completed', (done)=>{
+    //grab id of second todo item
+    // update text, set completed to false
+    //200
+    //text is changed, completed false, completedAt is null .toNotExist
+    var completed = false;
+
+    request(app)
+      .patch(`/todos/${todos[0]._id.toHexString()}`)
+      .expect(200)
+      .send({completed})
+      .expect((res)=>{
+        expect(res.body.todo.completed).toBe(completed);
+      })
+      .end((err,res)=>{
+        if(err){
+          return done(err);
+        }
+
+        Todo.findById(todos[0]._id).then((doc)=>{
+          expect(doc.completed).toBe(completed);
+          expect(doc.completedAt).toNotExist();
+          done();
+        }, (e)=>{
+          done(e);
+        });
+      });
+
+    done();
   });
 });
