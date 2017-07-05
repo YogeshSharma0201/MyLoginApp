@@ -105,7 +105,7 @@ app.post('/users', (req, res)=>{
 
   // User.findByToken
   // user.generateAuthToken
-
+  console.log(req.body.email, req.body.password);
   user.save().then((user)=>{
     return user.generateAuthToken();
   }).then((token)=>{
