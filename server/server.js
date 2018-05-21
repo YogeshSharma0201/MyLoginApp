@@ -2,123 +2,34 @@ require('./config/config.js');
 
 const _ = require('lodash');
 var express = require('express');
-var bodyPareser = require('body-parser');
+var bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
 const bcrypt = require('bcryptjs');
 
 var {mongoose} = require('./db/mongoose');
-var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
+var {Posts} = require('./models/posts');
 var {authenticate} = require('./middleware/authenticate');
 
 var app = express();
 const port = process.env.PORT;
 
-app.use(bodyPareser.json());
+app.use(bodyParser.json());
 
-app.post('/todos', authenticate, (req,res)=>{
-  var todo = new Todo({
-    text: req.body.text,
-    _creator: req.user._id
-  });
-
-  todo.save().then((doc)=>{
-    res.send(doc);
-  },(e)=>{
-    res.status(400).send(e);
-  })
-});
-
-app.get('/todos', authenticate, (req, res)=>{
-  Todo.find({
-    _creator: req.user._id
-  }).then((todos)=>{
-    res.send({todos});
-  }, (e)=>{
-    res.status(400).send(e);
-  });
-});
-
-app.get('/todos/:id', authenticate, (req,res)=>{
-  var id = req.params.id;
-  // validate id using isValid
-    //404 - send back empty send
-  if(!ObjectID.isValid(id)){
-    res.status(404).send();
-  }
-
-  //findById
-    //success
-      //if todo - send it back
-      //if no todo - send 404 with empth body
-    //error
-      //400 - send back nothing
-  Todo.findOne({
-    _id: id,
-    _creator: req.user._id
-  }).then((todo)=>{
-    if(!todo){
-      return res.status(404).send();
-    }
-    res.send({todo});
-  }, (e)=>{
-    res.status(400).send();
-  });
-});
-
-app.delete('/todos/:id', authenticate, (req, res)=>{
-  var id = req.params.id;
-  if(!ObjectID.isValid(id)){
-    return res.status(404).send();
-  }
-  Todo.findOneAndRemove({
-    _id: id,
-    _creator: req.user._id
-  }).then((doc)=>{
-    if(!doc){
-      res.status(404).send();
-    }
-    res.send(doc);
-  }, (e)=>{
-    res.status(400);
-  });
-});
-
-app.patch('/todos/:id', authenticate, (req,res)=>{
-  var id = req.params.id;
-  var body = _.pick(req.body, ['text', 'completed']);
-  if(!ObjectID.isValid(id)){
-    return res.status(404).send();
-  }
-
-  if(_.isBoolean(body.completed) && body.completed) {
-    body.completedAt = (new Date()).getTime();
-  } else {
-    body.completed = false;
-    body.completedAt = null;
-  }
-  Todo.findOneAndUpdate({
-    _id: id,
-    _creator: req.user._id
-  }, {$set: body}, {new: true}).then((todo)=>{
-    if(!todo){
-      return res.status(404).send();
-    }
-    res.send({todo});
-  }, (e)=> {
-    res.status(400).send();
+app.get('/posts', (req,res) => {
+  Posts.find({}).then((posts)=>{
+    res.send(posts);
   });
 });
 
 app.post('/users', (req, res)=>{
   var user = new User({
-    email: req.body.email,
-    password: req.body.password
+    username: req.body.username,
+    password: req.body.password,
+    email: req.body.email
   });
 
-  // User.findByToken
-  // user.generateAuthToken
-  console.log(req.body.email, req.body.password);
+  console.log(req.body.username, req.body.password);
   user.save().then((user)=>{
     return user.generateAuthToken();
   }).then((token)=>{
@@ -134,21 +45,14 @@ app.get('/users/me', authenticate, (req, res)=>{
 });
 
 app.post('/users/login', (req, res)=>{
-  var body = _.pick(req.body, ['email', 'password']);
+  var body = _.pick(req.body, ['username', 'password']);
 
-  User.findByCredentials(body.email, body.password).then((user)=>{
+  console.log(body);
+  User.findByCredentials(body.username, body.password).then((user)=>{
     user.generateAuthToken().then((token)=> {
-      res.header('x-auth', token).send(user);
+      res.send({user, token});
     });
   }).catch(e => res.status(400).send());
-});
-
-app.delete('/users/me/token', authenticate, (req, res)=>{
-  req.user.removeToken(req.token).then(()=>{
-    res.status(200).send();
-  }, ()=>{
-    res.status(400).send();
-  })
 });
 
 

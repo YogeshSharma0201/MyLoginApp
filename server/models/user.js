@@ -5,22 +5,27 @@ const _ = require('lodash');
 const bcrypt = require('bcryptjs');
 
 var UserSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    trim: true,
-    minlength: 1,
-    unique: true,
-    validate: {
-      validator: validator.isEmail,
-      message: '{VALUE} is not a valid value'
-    }
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 6
-  },
+    username: {
+        type: String,
+        required: true,
+        trim: true,
+        unique: true,
+        minlength: 4,
+    },
+    password: {
+        type: String,
+        required: true,
+        minlength: 4
+    },
+    email:{
+        type: String,
+        trim: true,
+        minlength: 1,
+        validate: {
+            validator: validator.isEmail,
+            message: '{VALUE} is not a valid value'
+        }
+    },
   tokens: [{
     access: {
       type: String,
@@ -31,13 +36,15 @@ var UserSchema = new mongoose.Schema({
       required: true
     }
   }]
+}, {
+    usePushEach: true
 });
 
 UserSchema.methods.toJSON = function () {
   var user = this;
   var userObject = user.toObject();
 
-  return _.pick(userObject, ['_id', 'email']);
+  return _.pick(userObject, ['_id', 'username']);
 };
 
 UserSchema.methods.generateAuthToken = function() {
@@ -81,13 +88,14 @@ UserSchema.statics.findByToken = function (token) {
   });
 };
 
-UserSchema.statics.findByCredentials = function(email, password) {
+UserSchema.statics.findByCredentials = function(username, password) {
   var User = this;
 
-  return User.findOne({email}).then((user)=>{
+  return User.findOne({username}).then((user)=>{
     if(!user){
       return Promise.reject();
     }
+      console.log(user);
 
     return new Promise((resolve, reject)=>{
       bcrypt.compare(password, user.password, (err, result)=>{

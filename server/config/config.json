@@ -1,0 +1,5 @@
+{
+  "JWT_SECRET": "SECRET",
+  "MONGODB_URI": "mongodb://127.0.0.1:27017/myapp",
+  "PORT": "5000"
+}
